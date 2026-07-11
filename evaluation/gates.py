@@ -20,7 +20,10 @@ def schema_gate(manifest: PackManifest, chunks: Iterable[ChunkMetadata]) -> bool
         data = chunk.model_dump()
         if any(data.get(k) in (None, "") for k in required_fields):
             return False
-        if chunk.pack_id != manifest.pack_id or chunk.pack_version != manifest.pack_version:
+        if (
+            chunk.pack_id != manifest.pack_id
+            or chunk.pack_version != manifest.pack_version
+        ):
             return False
     return True
 

@@ -80,3 +80,79 @@ def test_regression_gate_fails_when_over_budget() -> None:
 def test_duplication_gate_threshold_behaviour() -> None:
     assert duplication_gate([0.2, 0.8, 0.97], threshold=0.97)
     assert not duplication_gate([0.2, 0.98], threshold=0.97)
+
+
+def test_schema_gate_fails_when_field_missing() -> None:
+    chunk = ChunkMetadata(
+        pack_id="threat-modelling-aws-war",
+        pack_version="1.0.0",
+        source_uri="doc.md",
+        section_path="/",
+        ingested_at=datetime.now(timezone.utc),
+        contributor_id="alice",
+    ).model_dump()
+    del chunk["contributor_id"]
+
+    class IncompleteChunk:
+        def model_dump(self) -> dict:
+            return chunk
+
+    assert not schema_gate(manifest(), [IncompleteChunk()])
+
+
+def test_schema_gate_fails_when_field_empty() -> None:
+    chunk = ChunkMetadata(
+        pack_id="threat-modelling-aws-war",
+        pack_version="1.0.0",
+        source_uri="doc.md",
+        section_path="/",
+        ingested_at=datetime.now(timezone.utc),
+        contributor_id="",
+    )
+    assert not schema_gate(manifest(), [chunk])
+
+
+def test_schema_gate_fails_for_empty_chunk_list() -> None:
+    assert not schema_gate(manifest(), [])
+
+
+def test_schema_gate_fails_when_chunk_pack_id_does_not_match_manifest() -> None:
+    chunk = ChunkMetadata(
+        pack_id="a-different-pack",
+        pack_version="1.0.0",
+        source_uri="doc.md",
+        section_path="/",
+        ingested_at=datetime.now(timezone.utc),
+        contributor_id="alice",
+    )
+    assert not schema_gate(manifest(), [chunk])
+
+
+def test_schema_gate_fails_when_chunk_pack_version_does_not_match_manifest() -> None:
+    chunk = ChunkMetadata(
+        pack_id="threat-modelling-aws-war",
+        pack_version="0.9.0",
+        source_uri="doc.md",
+        section_path="/",
+        ingested_at=datetime.now(timezone.utc),
+        contributor_id="alice",
+    )
+    assert not schema_gate(manifest(), [chunk])
+
+
+def test_regression_gate_ignores_budget_when_previous_score_not_positive() -> None:
+    assert regression_gate(
+        previous=RagasScores(
+            faithfulness=0.0,
+            context_precision=0.0,
+            context_recall=0.0,
+            answer_relevancy=0.0,
+        ),
+        current=RagasScores(
+            faithfulness=0.1,
+            context_precision=0.1,
+            context_recall=0.1,
+            answer_relevancy=0.1,
+        ),
+        max_regression_pct=2.0,
+    )
