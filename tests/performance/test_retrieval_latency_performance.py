@@ -1,4 +1,5 @@
 import time
+from math import ceil
 
 import pytest
 
@@ -7,12 +8,15 @@ from retrieval.service import RetrievalService
 
 pytestmark = pytest.mark.performance
 
+NUM_SAMPLES = 50
+P95_LATENCY_THRESHOLD_SECONDS = 0.05
+
 
 def test_retrieval_service_p95_latency_smoke() -> None:
     service = RetrievalService()
     durations = []
 
-    for _ in range(50):
+    for _ in range(NUM_SAMPLES):
         start = time.perf_counter()
         result = service.query_pack(
             pack_id="threat-modelling-aws-war",
@@ -21,6 +25,6 @@ def test_retrieval_service_p95_latency_smoke() -> None:
         durations.append(time.perf_counter() - start)
         assert result.results
 
-    p95_index = max(int(len(durations) * 0.95) - 1, 0)
+    p95_index = max(ceil(len(durations) * 0.95) - 1, 0)
     p95 = sorted(durations)[p95_index]
-    assert p95 < 0.05
+    assert p95 < P95_LATENCY_THRESHOLD_SECONDS
