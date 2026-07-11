@@ -44,5 +44,9 @@ State transitions are `draft -> evaluated -> published`.
    - `pack ingest packs/<pack_id> --pack <pack_id> --contributor-id <your_id>`
 3. Run tests:
    - `pytest`
+   - `pytest -m unit`
+   - `pytest -m e2e`
+   - `pytest -m security`
+   - `pytest -m performance`
 
 Use Australian English for all documentation updates.

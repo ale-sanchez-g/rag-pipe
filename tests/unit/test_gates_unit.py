@@ -1,7 +1,12 @@
 from datetime import datetime, timezone
+
+import pytest
+
 from evaluation.contracts import RagasScores
 from evaluation.gates import duplication_gate, grounding_gate, regression_gate, schema_gate
 from ingestion.contracts import ChunkMetadata, ChunkingConfig, EmbeddingConfig, PackManifest, QualityThresholds
+
+pytestmark = pytest.mark.unit
 
 
 def manifest() -> PackManifest:

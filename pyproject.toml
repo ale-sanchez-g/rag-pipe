@@ -39,3 +39,9 @@ packages = ["api", "evaluation", "ingestion", "mcp", "packs", "retrieval"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+markers = [
+  "unit: fast unit tests for core logic contracts",
+  "e2e: end-to-end tests across API request/response flow",
+  "security: security and tenancy boundary tests",
+  "performance: performance and latency budget smoke tests"
+]

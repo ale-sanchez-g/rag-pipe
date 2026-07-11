@@ -1,6 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
+
+pytestmark = pytest.mark.e2e
 
 
 def test_query_requires_api_key() -> None:

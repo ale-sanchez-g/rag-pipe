@@ -37,6 +37,17 @@ flowchart LR
 4. Query endpoint:
    - `POST /v1/packs/{pack_id}/query`
 
+## Test Framework
+
+The repository provides four pytest suites:
+- Unit: `pytest -m unit`
+- End-to-end: `pytest -m e2e`
+- Security: `pytest -m security`
+- Performance smoke: `pytest -m performance`
+
+Run all tests:
+- `pytest`
+
 ## Runbook
 
 ### Ingest a pack draft
