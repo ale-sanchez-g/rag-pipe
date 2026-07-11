@@ -15,8 +15,12 @@ def ingest(path: Path, pack: str, contributor_id: str = "unknown") -> None:
         raise typer.BadParameter("--pack must match manifest pack_id")
 
     docs = discover_documents(path)
-    chunks = ingest_documents(manifest=manifest, docs=docs, contributor_id=contributor_id)
+    chunks = ingest_documents(
+        manifest=manifest, docs=docs, contributor_id=contributor_id
+    )
     if not schema_gate(manifest=manifest, chunks=chunks):
         raise typer.Exit(code=1)
 
-    typer.echo(f"Ingestion draft complete for {manifest.pack_id}@{manifest.pack_version}: {len(chunks)} chunks")
+    typer.echo(
+        f"Ingestion draft complete for {manifest.pack_id}@{manifest.pack_version}: {len(chunks)} chunks"
+    )

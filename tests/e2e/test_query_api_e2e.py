@@ -16,7 +16,9 @@ def test_query_requires_api_key() -> None:
 
 
 def test_query_returns_contract_shape(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("RAG_PIPE_API_KEYS", "demo-key:customer-demo:threat-modelling-aws-war")
+    monkeypatch.setenv(
+        "RAG_PIPE_API_KEYS", "demo-key:customer-demo:threat-modelling-aws-war"
+    )
     client = TestClient(app)
     response = client.post(
         "/v1/packs/threat-modelling-aws-war/query",
@@ -29,4 +31,6 @@ def test_query_returns_contract_shape(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "query_id" in body
     assert body["results"]
     first = body["results"][0]
-    assert {"chunk_id", "text", "score", "source_uri", "section_path"}.issubset(first.keys())
+    assert {"chunk_id", "text", "score", "source_uri", "section_path"}.issubset(
+        first.keys()
+    )

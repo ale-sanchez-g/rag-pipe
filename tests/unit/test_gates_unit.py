@@ -3,8 +3,19 @@ from datetime import datetime, timezone
 import pytest
 
 from evaluation.contracts import RagasScores
-from evaluation.gates import duplication_gate, grounding_gate, regression_gate, schema_gate
-from ingestion.contracts import ChunkMetadata, ChunkingConfig, EmbeddingConfig, PackManifest, QualityThresholds
+from evaluation.gates import (
+    duplication_gate,
+    grounding_gate,
+    regression_gate,
+    schema_gate,
+)
+from ingestion.contracts import (
+    ChunkMetadata,
+    ChunkingConfig,
+    EmbeddingConfig,
+    PackManifest,
+    QualityThresholds,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -18,7 +29,9 @@ def manifest() -> PackManifest:
         owner="owner",
         embedding=EmbeddingConfig(model="BAAI/bge-large-en-v1.5", version="1.5"),
         chunking=ChunkingConfig(strategy="semantic", size=800, overlap=120),
-        quality_thresholds=QualityThresholds(faithfulness_min=0.85, context_precision_min=0.75, max_regression_pct=2.0),
+        quality_thresholds=QualityThresholds(
+            faithfulness_min=0.85, context_precision_min=0.75, max_regression_pct=2.0
+        ),
     )
 
 
@@ -36,15 +49,30 @@ def test_schema_gate_passes_with_complete_metadata() -> None:
 
 def test_grounding_gate_passes_thresholds() -> None:
     assert grounding_gate(
-        RagasScores(faithfulness=0.9, context_precision=0.8, context_recall=0.7, answer_relevancy=0.8),
+        RagasScores(
+            faithfulness=0.9,
+            context_precision=0.8,
+            context_recall=0.7,
+            answer_relevancy=0.8,
+        ),
         manifest(),
     )
 
 
 def test_regression_gate_fails_when_over_budget() -> None:
     assert not regression_gate(
-        previous=RagasScores(faithfulness=0.9, context_precision=0.8, context_recall=0.7, answer_relevancy=0.8),
-        current=RagasScores(faithfulness=0.86, context_precision=0.76, context_recall=0.7, answer_relevancy=0.8),
+        previous=RagasScores(
+            faithfulness=0.9,
+            context_precision=0.8,
+            context_recall=0.7,
+            answer_relevancy=0.8,
+        ),
+        current=RagasScores(
+            faithfulness=0.86,
+            context_precision=0.76,
+            context_recall=0.7,
+            answer_relevancy=0.8,
+        ),
         max_regression_pct=2.0,
     )
 

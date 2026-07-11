@@ -9,11 +9,15 @@ SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown", ".html", ".htm", ".docx"}
 
 def discover_documents(path: Path) -> list[Path]:
     return [
-        p for p in path.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
+        p
+        for p in path.rglob("*")
+        if p.is_file() and p.suffix.lower() in SUPPORTED_EXTENSIONS
     ]
 
 
-def build_chunk_metadata(manifest: PackManifest, source_uri: str, section_path: str, contributor_id: str) -> ChunkMetadata:
+def build_chunk_metadata(
+    manifest: PackManifest, source_uri: str, section_path: str, contributor_id: str
+) -> ChunkMetadata:
     return ChunkMetadata(
         pack_id=manifest.pack_id,
         pack_version=manifest.pack_version,
@@ -24,7 +28,9 @@ def build_chunk_metadata(manifest: PackManifest, source_uri: str, section_path: 
     )
 
 
-def ingest_documents(manifest: PackManifest, docs: Iterable[Path], contributor_id: str) -> list[ChunkMetadata]:
+def ingest_documents(
+    manifest: PackManifest, docs: Iterable[Path], contributor_id: str
+) -> list[ChunkMetadata]:
     chunks = []
     for doc in docs:
         chunks.append(

@@ -59,11 +59,12 @@ jobs:
           set -euo pipefail
           VERSION=8.18.4
           BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}"
-          curl -sSL "$BASE_URL/gitleaks_${VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          ASSET="gitleaks_${VERSION}_linux_x64.tar.gz"
+          curl -sSL "$BASE_URL/$ASSET" -o "$ASSET"
           curl -sSL "$BASE_URL/gitleaks_${VERSION}_checksums.txt" -o checksums.txt
-          grep "gitleaks_${VERSION}_linux_x64.tar.gz" checksums.txt > selected.sum
+          grep "$ASSET" checksums.txt > selected.sum
           sha256sum -c selected.sum
-          tar -xzf gitleaks.tar.gz gitleaks
+          tar -xzf "$ASSET" gitleaks
           chmod +x gitleaks
 
       - name: Report-first secrets scan
@@ -138,7 +139,7 @@ jobs:
           cache: pip
 
       - name: Install semgrep
-        run: python -m pip install semgrep==1.82.0
+        run: python -m pip install setuptools semgrep==1.82.0
 
       - name: Build ignore list from exceptions
         run: |

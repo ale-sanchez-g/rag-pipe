@@ -28,11 +28,14 @@ def duplication_gate(similarities: Iterable[float], threshold: float = 0.97) -> 
 def grounding_gate(scores: RagasScores, manifest: PackManifest) -> bool:
     return (
         scores.faithfulness >= manifest.quality_thresholds.faithfulness_min
-        and scores.context_precision >= manifest.quality_thresholds.context_precision_min
+        and scores.context_precision
+        >= manifest.quality_thresholds.context_precision_min
     )
 
 
-def regression_gate(previous: RagasScores, current: RagasScores, max_regression_pct: float) -> bool:
+def regression_gate(
+    previous: RagasScores, current: RagasScores, max_regression_pct: float
+) -> bool:
     def within_budget(old: float, new: float) -> bool:
         if old <= 0:
             return True

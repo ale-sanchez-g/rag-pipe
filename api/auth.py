@@ -19,7 +19,9 @@ def _parse_keys() -> dict[str, CustomerContext]:
         if len(parts) < 3:
             continue
         key, customer_id, packs = parts[0], parts[1], parts[2]
-        parsed[key] = CustomerContext(api_key=key, customer_id=customer_id, allowed_packs=set(packs.split("|")))
+        parsed[key] = CustomerContext(
+            api_key=key, customer_id=customer_id, allowed_packs=set(packs.split("|"))
+        )
     return parsed
 
 
@@ -27,10 +29,14 @@ async def require_customer(x_api_key: str = Header(default="")) -> CustomerConte
     keys = _parse_keys()
     context = keys.get(x_api_key)
     if not context:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        )
     return context
 
 
 def require_pack_access(context: CustomerContext, pack_id: str) -> None:
     if pack_id not in context.allowed_packs:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Pack access denied")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Pack access denied"
+        )
