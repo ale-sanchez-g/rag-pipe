@@ -123,7 +123,8 @@ jobs:
           if [ -f deploy/apply.sh ]; then
             bash deploy/apply.sh "$IMAGE"
           else
-            echo 'No IaC apply script detected; deployment apply step intentionally no-op.'
+            echo '::error::deploy/apply.sh is required for deployment apply. Refusing to deploy without verifiable apply logic (fail-closed).'
+            exit 1
           fi
 
       - name: Smoke test with bounded retry
@@ -171,7 +172,8 @@ jobs:
           if [ -f deploy/apply.sh ]; then
             bash deploy/apply.sh "$IMAGE"
           else
-            echo 'No IaC apply script detected; rollback apply step intentionally no-op.'
+            echo '::error::deploy/apply.sh is required for rollback apply. Refusing rollback without verifiable apply logic (fail-closed).'
+            exit 1
           fi
 
       - name: Smoke test rollback target
