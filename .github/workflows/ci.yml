@@ -84,7 +84,7 @@ jobs:
         run: python -m pip install uv==0.5.7
 
       - name: Deterministic lock check
-        run: uv lock --check
+        run: uv lock --locked
 
       - name: Deterministic sync check
         run: uv sync --locked --dev --frozen

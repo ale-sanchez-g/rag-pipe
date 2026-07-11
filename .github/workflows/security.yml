@@ -74,9 +74,9 @@ jobs:
           if [ -f .gitleaks-baseline.json ]; then
             BASELINE_ARGS+=(--baseline-path .gitleaks-baseline.json)
           fi
-          ./gitleaks git --report-format sarif --report-path gitleaks.sarif --config .gitleaks.toml "${BASELINE_ARGS[@]}"
+          ./gitleaks detect --report-format sarif --report-path gitleaks.sarif --config .gitleaks.toml "${BASELINE_ARGS[@]}"
           SCAN_EXIT=$?
-          ./gitleaks git --report-format json --report-path gitleaks.json --config .gitleaks.toml "${BASELINE_ARGS[@]}" || true
+          ./gitleaks detect --report-format json --report-path gitleaks.json --config .gitleaks.toml "${BASELINE_ARGS[@]}" || true
           echo "scan_exit=${SCAN_EXIT}" >> "$GITHUB_OUTPUT"
         id: secrets_report
 
@@ -139,7 +139,7 @@ jobs:
           cache: pip
 
       - name: Install semgrep
-        run: python -m pip install setuptools semgrep==1.82.0
+        run: python -m pip install "setuptools<81" semgrep==1.82.0
 
       - name: Build ignore list from exceptions
         run: |
