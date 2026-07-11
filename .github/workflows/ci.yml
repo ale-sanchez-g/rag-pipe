@@ -167,7 +167,7 @@ jobs:
             --cov-report=xml:coverage-${{ matrix.suite }}.xml || true
 
       - name: Upload raw test evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-report-${{ matrix.suite }}
           path: |
@@ -206,7 +206,7 @@ jobs:
           mutmut results > mutation-report.txt || true
 
       - name: Upload mutation report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mutation-report
           path: mutation-report.txt
@@ -261,7 +261,7 @@ jobs:
           pip-audit -f json -o sca-python-report.json || true
 
       - name: Upload SCA report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sca-python-report
           path: sca-python-report.json
@@ -336,7 +336,7 @@ jobs:
           PY
 
       - name: Upload quality summary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: code-quality-summary
           path: code-quality-summary.md
@@ -393,7 +393,7 @@ jobs:
           test -f dist/rag_pipe-*.whl
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-dist
           path: dist/*
@@ -473,7 +473,7 @@ jobs:
 
       - name: Upload E2E artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-artifacts
           path: |
@@ -577,7 +577,7 @@ jobs:
 
       - name: Upload performance artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-report
           path: |
