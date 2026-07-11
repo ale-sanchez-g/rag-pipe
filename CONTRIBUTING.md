@@ -55,5 +55,6 @@ State transitions are `draft -> evaluated -> published`.
 - Pushes to `main` run tests plus package build.
 - Version tags matching `v*` trigger release publication.
 - SonarQube analysis runs when `SONAR_PROJECT_KEY` (variable) and `SONAR_HOST_URL` and `SONAR_TOKEN` (secrets) are configured in the repository settings.
+- When adding or renaming source modules, update `sonar.sources` in `/home/runner/work/rag-pipe/rag-pipe/.github/workflows/ci.yml`.
 
 Use Australian English for all documentation updates.
