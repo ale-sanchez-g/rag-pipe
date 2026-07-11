@@ -46,6 +46,7 @@ jobs:
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge "$PR_URL" --squash --auto
         shell: bash
 
@@ -63,5 +64,3 @@ jobs:
               issue_number: pull_number,
               body: 'Update classified as major or unrecognised semver; auto-merge skipped and manual review is required.'
             });
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}

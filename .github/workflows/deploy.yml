@@ -133,7 +133,7 @@ jobs:
             echo '::error::PROD_HEALTH_URL repository variable is required for deploy smoke test. Rollback: run workflow_dispatch on deploy.yml with a known-good tag.'
             exit 1
           fi
-          for i in {1..20}; do
+          for _ in {1..20}; do
             if curl -fsS "$HEALTH_URL" >/dev/null; then
               echo 'Production smoke test passed.'
               exit 0
@@ -181,7 +181,7 @@ jobs:
             echo '::error::PROD_HEALTH_URL repository variable is required for rollback smoke test.'
             exit 1
           fi
-          for i in {1..20}; do
+          for _ in {1..20}; do
             if curl -fsS "$HEALTH_URL" >/dev/null; then
               echo 'Rollback smoke test passed.'
               exit 0

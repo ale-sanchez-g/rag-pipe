@@ -51,7 +51,6 @@ jobs:
         id: version
         run: |
           python - <<'PY'
-          import re
           import tomllib
           from pathlib import Path
 
@@ -68,10 +67,9 @@ jobs:
               minor = 0
               patch = 0
           next_version = f'{major}.{minor}.{patch}'
-          print(f'next_version={next_version}')
-          with open(Path('${{ github.output }}'), 'a', encoding='utf-8') as f:
-              f.write(f'next_version={next_version}\n')
+          Path('next_version.txt').write_text(next_version, encoding='utf-8')
           PY
+          echo "next_version=$(cat next_version.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Generate deterministic changelog
         run: |

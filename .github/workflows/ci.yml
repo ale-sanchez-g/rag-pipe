@@ -256,7 +256,9 @@ jobs:
         run: python -m pip install pip-audit==2.7.3
 
       - name: Report-first dependency scan
-        run: pip-audit -r uv.lock -f json -o sca-python-report.json || true
+        run: |
+          python -m pip install -e .
+          pip-audit -f json -o sca-python-report.json || true
 
       - name: Upload SCA report artifact
         uses: actions/upload-artifact@v4
@@ -443,7 +445,7 @@ jobs:
 
       - name: Poll health endpoint with timeout
         run: |
-          for i in {1..30}; do
+          for _ in {1..30}; do
             if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
               echo 'API is healthy.'
               exit 0
@@ -522,7 +524,7 @@ jobs:
         run: |
           docker compose down -v || true
           docker compose up -d --build qdrant api
-          for i in {1..30}; do
+          for _ in {1..30}; do
             if curl -fsS http://127.0.0.1:8000/health >/dev/null; then break; fi
             sleep 2
           done
@@ -535,7 +537,7 @@ jobs:
       - name: Phase 2 (full profile)
         run: |
           docker compose up -d --build qdrant api
-          for i in {1..30}; do
+          for _ in {1..30}; do
             if curl -fsS http://127.0.0.1:8000/health >/dev/null; then break; fi
             sleep 2
           done
