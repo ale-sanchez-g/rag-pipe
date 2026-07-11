@@ -1,0 +1,48 @@
+# Contributing Knowledge Pack Content
+
+## Purpose
+
+This repository hosts versioned knowledge packs for retrieval systems. Content quality and traceability are mandatory.
+
+## Document Structure
+
+- Place pack content under `/home/runner/work/rag-pipe/rag-pipe/packs/<pack_id>/docs/`.
+- Include a pack `manifest.yaml` at `/home/runner/work/rag-pipe/rag-pipe/packs/<pack_id>/manifest.yaml`.
+- Supported source formats: PDF, Markdown, HTML, DOCX.
+
+## Required Metadata and Manifest Fields
+
+Every pack manifest must include:
+- `pack_id`, `pack_version`, `domain_description`, `licence`, `owner`
+- `embedding.model`, `embedding.version`
+- `chunking.strategy`, `chunking.size`, `chunking.overlap`
+- `quality_thresholds` (faithfulness, context precision, regression budget)
+
+Each generated chunk must carry:
+- `pack_id`, `pack_version`, `source_uri`, `section_path`, `ingested_at`, `contributor_id`
+
+## Quality Gates
+
+Each ingestion must pass all gates before publication:
+1. **Schema gate**: valid manifest and complete chunk metadata.
+2. **Duplication gate**: near-duplicate detection (cosine > 0.97 policy).
+3. **Grounding gate**: RAGAS thresholds against golden set.
+4. **Regression gate**: no more than 2% degradation from previous version.
+
+State transitions are `draft -> evaluated -> published`.
+
+## Golden Set Requirements
+
+- Add `golden/<pack_id>.jsonl`.
+- Include at least 25 question/answer pairs.
+- Keep questions specific to pack scope and answerable from included content.
+
+## Local Workflow
+
+1. Install dependencies.
+2. Run ingest CLI:
+   - `pack ingest /home/runner/work/rag-pipe/rag-pipe/packs/<pack_id> --pack <pack_id> --contributor-id <your_id>`
+3. Run tests:
+   - `pytest`
+
+Use Australian English for all documentation updates.
