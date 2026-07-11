@@ -99,6 +99,7 @@ Only passing runs transition from `draft` to `evaluated`, then to `published`.
 - Metrics: retrieval latency, hybrid hit rate, rerank latency, eval scores by pack/version.
 - Observability: OpenTelemetry traces across ingest, retrieve, and generate.
 - Logging: structured JSON with `pack_id`, `query_id`, `customer_id`; no raw query text at INFO level.
+- Static code analysis: SonarQube analysis in CI when repository SonarQube settings are configured.
 
 ## 7. Delivery Plan
 

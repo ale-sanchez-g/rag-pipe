@@ -48,6 +48,18 @@ The repository provides four pytest suites:
 Run all tests:
 - `pytest`
 
+## CI/CD and SonarQube
+
+GitHub Actions runs a multi-stage pipeline:
+- Test stage: runs `tests/unit`, `tests/e2e`, `tests/security`, and `tests/performance`.
+- Build stage: builds Python distribution artefacts on non-PR events.
+- Release stage: publishes tagged `v*` artefacts to GitHub Releases.
+- SonarQube stage: runs static analysis after tests when SonarQube settings are configured.
+
+To enable SonarQube analysis, configure:
+- Repository variable: `SONAR_PROJECT_KEY`
+- Repository secrets: `SONAR_HOST_URL`, `SONAR_TOKEN`
+
 ## Runbook
 
 ### Ingest a pack draft

@@ -49,4 +49,11 @@ State transitions are `draft -> evaluated -> published`.
    - `pytest -m security`
    - `pytest -m performance`
 
+## CI/CD and SonarQube Expectations
+
+- Pull requests run the CI test stages for unit, end-to-end, security, and performance suites.
+- Pushes to `main` run tests plus package build.
+- Version tags matching `v*` trigger release publication.
+- SonarQube analysis runs when `SONAR_PROJECT_KEY` (variable) and `SONAR_HOST_URL` and `SONAR_TOKEN` (secrets) are configured in the repository settings.
+
 Use Australian English for all documentation updates.
