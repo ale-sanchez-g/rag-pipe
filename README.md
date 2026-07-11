@@ -36,6 +36,12 @@ flowchart LR
    - `uvicorn api.main:app --reload`
 4. Query endpoint:
    - `POST /v1/packs/{pack_id}/query`
+5. Interactive API docs (Swagger UI):
+   - `http://localhost:8000/docs` — click **Authorize** and paste an `x-api-key`
+     (see `RAG_PIPE_API_KEYS` in the entitlement model below) to try requests
+     directly from the browser.
+   - ReDoc: `http://localhost:8000/redoc`
+   - Raw OpenAPI schema: `http://localhost:8000/openapi.json`
 
 ## Test Framework
 

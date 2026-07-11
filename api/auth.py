@@ -1,6 +1,17 @@
 import os
 from dataclasses import dataclass
-from fastapi import Header, HTTPException, status
+from fastapi import HTTPException, Security, status
+from fastapi.security import APIKeyHeader
+
+api_key_header = APIKeyHeader(
+    name="x-api-key",
+    auto_error=False,
+    description=(
+        "Customer API key issued out-of-band. Configure known keys via the "
+        "RAG_PIPE_API_KEYS environment variable "
+        "(format: key:customer_id:pack_a|pack_b,key2:customer_id2:pack_c)."
+    ),
+)
 
 
 @dataclass
@@ -26,9 +37,11 @@ def _parse_keys() -> dict[str, CustomerContext]:
     return parsed
 
 
-async def require_customer(x_api_key: str = Header(default="")) -> CustomerContext:
+async def require_customer(
+    x_api_key: str = Security(api_key_header),
+) -> CustomerContext:
     keys = _parse_keys()
-    context = keys.get(x_api_key)
+    context = keys.get(x_api_key or "")
     if not context:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
