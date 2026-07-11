@@ -35,7 +35,7 @@ jobs:
         run: python -m pip install -e '.[dev]'
 
       - name: Run ${{ matrix.suite }} suite
-        run: python -m pytest -m "${{ matrix.suite }}"
+        run: python -m pytest --strict-markers -m "${{ matrix.suite }}"
 
   build:
     name: Build package
@@ -54,9 +54,7 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: |
-          python -m pip install -e '.[dev]'
-          python -m pip install build
+        run: python -m pip install build
 
       - name: Build distribution
         run: python -m build
