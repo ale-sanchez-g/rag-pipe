@@ -98,7 +98,7 @@ jobs:
 
       - name: Upsert secrets PR comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           MARKER: '<!-- secrets-scan-summary -->'
         with:
@@ -290,7 +290,7 @@ jobs:
 
       - name: Upsert SAST summary comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           MARKER: '<!-- sast-summary -->'
         with:
@@ -353,7 +353,7 @@ jobs:
 
       - name: Upsert SCA summary comment
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           MARKER: '<!-- sca-summary -->'
         with:
