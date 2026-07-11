@@ -21,9 +21,9 @@ class ChunkingConfig(BaseModel):
 
 
 class QualityThresholds(BaseModel):
-    faithfulness_min: float = 0.85
-    context_precision_min: float = 0.75
-    max_regression_pct: float = 2.0
+    faithfulness_min: float
+    context_precision_min: float
+    max_regression_pct: float
 
 
 class PackManifest(BaseModel):
@@ -34,7 +34,7 @@ class PackManifest(BaseModel):
     owner: str
     embedding: EmbeddingConfig
     chunking: ChunkingConfig
-    quality_thresholds: QualityThresholds = QualityThresholds()
+    quality_thresholds: QualityThresholds
 
 
 class ChunkMetadata(BaseModel):

@@ -15,12 +15,13 @@ def _parse_keys() -> dict[str, CustomerContext]:
     rows = [row.strip() for row in raw.split(",") if row.strip()]
     parsed: dict[str, CustomerContext] = {}
     for row in rows:
-        parts = row.split(":")
-        if len(parts) < 3:
+        try:
+            key, customer_id, packs = row.split(":", 2)
+        except ValueError:
             continue
-        key, customer_id, packs = parts[0], parts[1], parts[2]
+        allowed = {p.strip() for p in packs.split("|") if p.strip()}
         parsed[key] = CustomerContext(
-            api_key=key, customer_id=customer_id, allowed_packs=set(packs.split("|"))
+            api_key=key, customer_id=customer_id, allowed_packs=allowed
         )
     return parsed
 

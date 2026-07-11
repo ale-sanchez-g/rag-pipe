@@ -313,7 +313,10 @@ jobs:
           threshold = 0.80
           rows = []
           failed = False
-          for path in sorted(glob.glob('coverage-*.xml')):
+          paths = sorted(glob.glob('coverage-*.xml'))
+          if not paths:
+              raise SystemExit('No coverage XML artifacts found; failing quality gate.')
+          for path in paths:
               root = ET.parse(path).getroot()
               rate = float(root.attrib.get('line-rate', 0.0))
               suite = path.replace('coverage-', '').replace('.xml', '')

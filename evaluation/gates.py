@@ -4,6 +4,10 @@ from ingestion.contracts import ChunkMetadata, PackManifest
 
 
 def schema_gate(manifest: PackManifest, chunks: Iterable[ChunkMetadata]) -> bool:
+    chunks_list = list(chunks)
+    if not chunks_list:
+        return False
+
     required_fields = {
         "pack_id",
         "pack_version",
@@ -12,11 +16,11 @@ def schema_gate(manifest: PackManifest, chunks: Iterable[ChunkMetadata]) -> bool
         "ingested_at",
         "contributor_id",
     }
-    for chunk in chunks:
+    for chunk in chunks_list:
         data = chunk.model_dump()
-        if not required_fields.issubset(data.keys()):
-            return False
         if any(data.get(k) in (None, "") for k in required_fields):
+            return False
+        if chunk.pack_id != manifest.pack_id or chunk.pack_version != manifest.pack_version:
             return False
     return True
 
