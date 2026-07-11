@@ -53,8 +53,8 @@ State transitions are `draft -> evaluated -> published`.
 
 - Pull requests run the CI test stages for unit, end-to-end, security, and performance suites.
 - Pushes to `main` run tests plus package build.
-- Version tags matching `v*` trigger release publication.
+- Version tags matching `v*` trigger release publication (for example `v1.0.0`).
 - SonarQube analysis runs when `SONAR_PROJECT_KEY` (variable) and `SONAR_HOST_URL` and `SONAR_TOKEN` (secrets) are configured in the repository settings.
-- When adding or renaming source modules, update `sonar.sources` in `/home/runner/work/rag-pipe/rag-pipe/.github/workflows/ci.yml`.
+- When adding or renaming source modules, update `sonar.sources` in `.github/workflows/ci.yml`.
 
 Use Australian English for all documentation updates.

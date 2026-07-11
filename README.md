@@ -54,12 +54,12 @@ GitHub Actions runs a multi-stage pipeline:
 - Test stage: runs `tests/unit`, `tests/e2e`, `tests/security`, and `tests/performance`.
 - Build stage: builds Python distribution artefacts on non-PR events.
 - Release stage: publishes tagged `v*` artefacts to GitHub Releases.
-- SonarQube stage: runs static analysis after successful tests when `SONAR_PROJECT_KEY`, `SONAR_HOST_URL`, and `SONAR_TOKEN` are all configured.
+- SonarQube stage: runs static analysis after successful tests when `SONAR_PROJECT_KEY` (repository variable) and `SONAR_HOST_URL` and `SONAR_TOKEN` (repository secrets) are all configured.
 
 To enable SonarQube analysis, configure:
 - Repository variable: `SONAR_PROJECT_KEY`
 - Repository secrets: `SONAR_HOST_URL`, `SONAR_TOKEN`
-- Keep `sonar.sources` in `/home/runner/work/rag-pipe/rag-pipe/.github/workflows/ci.yml` aligned with repository source directories when modules are added or renamed.
+- Keep `sonar.sources` in `.github/workflows/ci.yml` aligned with repository source directories when modules are added or renamed.
 
 ## Runbook
 
