@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from evaluation.contracts import RagasScores
-from evaluation.gates import grounding_gate, regression_gate, schema_gate
+from evaluation.gates import duplication_gate, grounding_gate, regression_gate, schema_gate
 from ingestion.contracts import ChunkMetadata, ChunkingConfig, EmbeddingConfig, PackManifest, QualityThresholds
 
 
@@ -42,3 +42,8 @@ def test_regression_gate_fails_when_over_budget() -> None:
         current=RagasScores(faithfulness=0.86, context_precision=0.76, context_recall=0.7, answer_relevancy=0.8),
         max_regression_pct=2.0,
     )
+
+
+def test_duplication_gate_threshold_behaviour() -> None:
+    assert duplication_gate([0.2, 0.8, 0.97], threshold=0.97)
+    assert not duplication_gate([0.2, 0.98], threshold=0.97)

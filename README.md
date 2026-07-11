@@ -18,13 +18,13 @@ flowchart LR
 
 ## Repository Layout
 
-- `/home/runner/work/rag-pipe/rag-pipe/packs/`: pack manifests and documents
-- `/home/runner/work/rag-pipe/rag-pipe/ingestion/`: ingestion and CLI
-- `/home/runner/work/rag-pipe/rag-pipe/retrieval/`: retrieval contracts and orchestration
-- `/home/runner/work/rag-pipe/rag-pipe/evaluation/`: quality gate logic
-- `/home/runner/work/rag-pipe/rag-pipe/api/`: FastAPI retrieval endpoint
-- `/home/runner/work/rag-pipe/rag-pipe/mcp/`: MCP wrapper
-- `/home/runner/work/rag-pipe/rag-pipe/golden/`: golden question sets
+- `packs/`: pack manifests and documents
+- `ingestion/`: ingestion and CLI
+- `retrieval/`: retrieval contracts and orchestration
+- `evaluation/`: quality gate logic
+- `api/`: FastAPI retrieval endpoint
+- `mcp/`: MCP wrapper
+- `golden/`: golden question sets
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ flowchart LR
 
 ### Ingest a pack draft
 
-`pack ingest /home/runner/work/rag-pipe/rag-pipe/packs/threat-modelling-aws-war --pack threat-modelling-aws-war --contributor-id team-a`
+`pack ingest packs/threat-modelling-aws-war --pack threat-modelling-aws-war --contributor-id team-a`
 
 ### Publish workflow
 

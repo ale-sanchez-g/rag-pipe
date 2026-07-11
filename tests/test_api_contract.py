@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 from api.main import app
 
@@ -11,7 +12,8 @@ def test_query_requires_api_key() -> None:
     assert response.status_code == 401
 
 
-def test_query_returns_contract_shape() -> None:
+def test_query_returns_contract_shape(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_PIPE_API_KEYS", "demo-key:customer-demo:threat-modelling-aws-war")
     client = TestClient(app)
     response = client.post(
         "/v1/packs/threat-modelling-aws-war/query",

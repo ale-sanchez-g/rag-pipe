@@ -6,8 +6,8 @@ This repository hosts versioned knowledge packs for retrieval systems. Content q
 
 ## Document Structure
 
-- Place pack content under `/home/runner/work/rag-pipe/rag-pipe/packs/<pack_id>/docs/`.
-- Include a pack `manifest.yaml` at `/home/runner/work/rag-pipe/rag-pipe/packs/<pack_id>/manifest.yaml`.
+- Place pack content under `packs/<pack_id>/docs/`.
+- Include a pack `manifest.yaml` at `packs/<pack_id>/manifest.yaml`.
 - Supported source formats: PDF, Markdown, HTML, DOCX.
 
 ## Required Metadata and Manifest Fields
@@ -41,7 +41,7 @@ State transitions are `draft -> evaluated -> published`.
 
 1. Install dependencies.
 2. Run ingest CLI:
-   - `pack ingest /home/runner/work/rag-pipe/rag-pipe/packs/<pack_id> --pack <pack_id> --contributor-id <your_id>`
+   - `pack ingest packs/<pack_id> --pack <pack_id> --contributor-id <your_id>`
 3. Run tests:
    - `pytest`
 

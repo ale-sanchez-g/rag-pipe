@@ -4,7 +4,6 @@ from ingestion.contracts import ChunkMetadata, PackManifest
 
 
 def schema_gate(manifest: PackManifest, chunks: Iterable[ChunkMetadata]) -> bool:
-    _ = manifest.pack_id
     required_fields = {
         "pack_id",
         "pack_version",
