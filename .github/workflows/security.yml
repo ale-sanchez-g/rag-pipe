@@ -261,7 +261,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Download SAST artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: sast-*-report
           merge-multiple: true
@@ -320,7 +320,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Download SCA artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*sca*report*'
           merge-multiple: true
