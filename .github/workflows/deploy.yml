@@ -1,0 +1,194 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      rollback_tag:
+        description: Previously deployed tag to roll back to (vX.Y.Z)
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci-gate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+      pull-requests: read
+    outputs:
+      validated_sha: ${{ steps.checks.outputs.validated_sha }}
+    steps:
+      - name: Validate CI evidence for deployment commit
+        id: checks
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const excluded = new Set(['ci-gate', 'deploy', 'rollback']);
+            async function successfulChecks(sha) {
+              const checks = await github.rest.checks.listForRef({owner, repo, ref: sha, per_page: 100});
+              return checks.data.check_runs.filter(c => !excluded.has(c.name) && c.status === 'completed' && c.conclusion === 'success');
+            }
+
+            let sha = context.sha;
+            let ok = await successfulChecks(sha);
+            if (ok.length === 0) {
+              const prs = await github.rest.repos.listPullRequestsAssociatedWithCommit({owner, repo, commit_sha: sha});
+              const merged = prs.data.find(pr => pr.merged_at);
+              if (merged) {
+                sha = merged.head.sha;
+                ok = await successfulChecks(sha);
+              }
+            }
+
+            if (ok.length === 0) {
+              core.setFailed('No verified successful check runs found for deploy candidate SHA (fail-closed).');
+              return;
+            }
+
+            core.info(`Validated ${ok.length} successful checks on ${sha}`);
+            core.setOutput('validated_sha', sha);
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: ci-gate
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg >/dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Build image locally
+        run: |
+          TAG='${{ github.ref_name }}'
+          IMAGE="ghcr.io/${{ github.repository }}/api:${TAG}"
+          docker build -t "$IMAGE" .
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Scan image before push (report-first)
+        run: |
+          trivy image --format json --output trivy-image-report.json "$IMAGE" || true
+
+      - name: Upload scan and SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-security-artifacts
+          path: |
+            trivy-image-report.json
+          retention-days: 90
+
+      - name: Enforce no HIGH/CRITICAL vulnerabilities
+        run: |
+          trivy image --severity HIGH,CRITICAL --exit-code 1 "$IMAGE"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        run: docker push "$IMAGE"
+
+      - name: Apply infrastructure/deploy manifest
+        run: |
+          if [ -f deploy/apply.sh ]; then
+            bash deploy/apply.sh "$IMAGE"
+          else
+            echo '::error::deploy/apply.sh is required for deployment apply. Refusing to deploy without verifiable apply logic (fail-closed).'
+            exit 1
+          fi
+
+      - name: Smoke test with bounded retry
+        run: |
+          HEALTH_URL="${{ vars.PROD_HEALTH_URL }}"
+          if [ -z "$HEALTH_URL" ]; then
+            echo '::error::PROD_HEALTH_URL repository variable is required for deploy smoke test. Rollback: run workflow_dispatch on deploy.yml with a known-good tag.'
+            exit 1
+          fi
+          for _ in {1..20}; do
+            if curl -fsS "$HEALTH_URL" >/dev/null; then
+              echo 'Production smoke test passed.'
+              exit 0
+            fi
+            sleep 6
+          done
+          echo '::error::Production smoke test failed. Rollback: run deploy.yml workflow_dispatch with rollback_tag=<previous-tag>.'
+          exit 1
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    steps:
+      - name: Validate rollback tag format
+        run: |
+          TAG='${{ inputs.rollback_tag }}'
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::rollback_tag must match vX.Y.Z'
+            exit 1
+          fi
+
+      - name: Verify image exists in registry
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}/api:${{ inputs.rollback_tag }}"
+          docker manifest inspect "$IMAGE" >/dev/null
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Apply rollback deployment
+        run: |
+          if [ -f deploy/apply.sh ]; then
+            bash deploy/apply.sh "$IMAGE"
+          else
+            echo '::error::deploy/apply.sh is required for rollback apply. Refusing rollback without verifiable apply logic (fail-closed).'
+            exit 1
+          fi
+
+      - name: Smoke test rollback target
+        run: |
+          HEALTH_URL="${{ vars.PROD_HEALTH_URL }}"
+          if [ -z "$HEALTH_URL" ]; then
+            echo '::error::PROD_HEALTH_URL repository variable is required for rollback smoke test.'
+            exit 1
+          fi
+          for _ in {1..20}; do
+            if curl -fsS "$HEALTH_URL" >/dev/null; then
+              echo 'Rollback smoke test passed.'
+              exit 0
+            fi
+            sleep 6
+          done
+          echo '::error::Rollback smoke test failed. Manual intervention required.'
+          exit 1

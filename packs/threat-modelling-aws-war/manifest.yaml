@@ -1,0 +1,16 @@
+pack_id: threat-modelling-aws-war
+pack_version: 1.0.0
+domain_description: Threat modelling guidance aligned to AWS Well-Architected security pillar and STRIDE.
+licence: MIT
+owner: platform-security
+embedding:
+  model: BAAI/bge-large-en-v1.5
+  version: "1.5"
+chunking:
+  strategy: semantic
+  size: 800
+  overlap: 120
+quality_thresholds:
+  faithfulness_min: 0.85
+  context_precision_min: 0.75
+  max_regression_pct: 2.0

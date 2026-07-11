@@ -1,0 +1,135 @@
+name: Release cut
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: Version bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      target_ref:
+        description: Target branch name (must be a real branch)
+        required: true
+        type: string
+      use_ai_notes:
+        description: AI polish release notes
+        required: true
+        type: boolean
+
+permissions: {}
+
+jobs:
+  cut-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate inputs
+        run: |
+          set -euo pipefail
+          TARGET='${{ inputs.target_ref }}'
+          if [[ "$TARGET" == *".."* ]] || [[ "$TARGET" =~ ^refs/ ]] || [[ "$TARGET" =~ ^v[0-9] ]] || [[ "$TARGET" =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo '::error::target_ref must be a plain branch name (not refs, tags, SHAs, or traversal)'
+            exit 1
+          fi
+          if ! git ls-remote --exit-code --heads origin "$TARGET" >/dev/null; then
+            echo "::error::target_ref branch not found on origin: $TARGET"
+            exit 1
+          fi
+
+      - name: Compute next version
+        id: version
+        run: |
+          python - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          bump = '${{ inputs.bump_type }}'
+          data = tomllib.loads(Path('pyproject.toml').read_text())
+          major, minor, patch = map(int, data['project']['version'].split('.'))
+          if bump == 'patch':
+              patch += 1
+          elif bump == 'minor':
+              minor += 1
+              patch = 0
+          elif bump == 'major':
+              major += 1
+              minor = 0
+              patch = 0
+          next_version = f'{major}.{minor}.{patch}'
+          Path('next_version.txt').write_text(next_version, encoding='utf-8')
+          PY
+          echo "next_version=$(cat next_version.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate deterministic changelog
+        run: |
+          LAST_TAG=$(git tag --sort=-version:refname | head -n 1 || true)
+          if [ -n "$LAST_TAG" ]; then
+            git log --pretty=format:'- %h %s (%an)' "$LAST_TAG"..HEAD > RELEASE_NOTES.md
+          else
+            git log --pretty=format:'- %h %s (%an)' > RELEASE_NOTES.md
+          fi
+          if [ '${{ inputs.use_ai_notes }}' = 'true' ]; then
+            {
+              echo
+              echo '_AI polish requested; deterministic notes preserved by policy in this workflow._'
+            } >> RELEASE_NOTES.md
+          fi
+
+      - name: Sync version-bearing files
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          version = '${{ steps.version.outputs.next_version }}'
+
+          pyproject = Path('pyproject.toml')
+          pyproject.write_text(re.sub(r'version = "[0-9]+\.[0-9]+\.[0-9]+"', f'version = "{version}"', pyproject.read_text(), count=1), encoding='utf-8')
+
+          api_main = Path('api/main.py')
+          api_main.write_text(re.sub(r'version="[0-9]+\.[0-9]+\.[0-9]+"', f'version="{version}"', api_main.read_text(), count=1), encoding='utf-8')
+
+          manifest = Path('packs/threat-modelling-aws-war/manifest.yaml')
+          manifest.write_text(re.sub(r'pack_version: [0-9]+\.[0-9]+\.[0-9]+', f'pack_version: {version}', manifest.read_text(), count=1), encoding='utf-8')
+          PY
+
+      - name: Commit and push release branch
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.version.outputs.next_version }}'
+          BRANCH="release/v${VERSION}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$BRANCH"
+          git add pyproject.toml api/main.py packs/threat-modelling-aws-war/manifest.yaml RELEASE_NOTES.md
+          git commit -m "chore(release): cut v${VERSION}"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push --set-upstream origin "$BRANCH"
+
+      - name: Open release PR and enable squash auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          set -euo pipefail
+          VERSION='${{ steps.version.outputs.next_version }}'
+          BRANCH="release/v${VERSION}"
+          TARGET='${{ inputs.target_ref }}'
+          gh pr create \
+            --base "$TARGET" \
+            --head "$BRANCH" \
+            --title "chore(release): v${VERSION}" \
+            --body-file RELEASE_NOTES.md
+          gh pr merge "$BRANCH" --squash --auto

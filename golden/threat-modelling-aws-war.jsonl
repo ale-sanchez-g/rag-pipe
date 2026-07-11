@@ -1,0 +1,25 @@
+{"question":"What does STRIDE stand for?","answer":"Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, and Elevation of Privilege."}
+{"question":"Why should STRIDE be applied per component boundary?","answer":"Because threats vary by trust boundary and component responsibilities."}
+{"question":"How does spoofing commonly appear in AWS workloads?","answer":"Through weak identity controls, token misuse, and improper trust policies."}
+{"question":"What IAM principle reduces privilege escalation risk?","answer":"Least privilege with scoped roles and short-lived credentials."}
+{"question":"Why is federation boundary modelling important?","answer":"It identifies trust assumptions between identity providers and AWS roles."}
+{"question":"What is a key tampering scenario in cloud pipelines?","answer":"Unauthorised changes to deployment artefacts or configuration state."}
+{"question":"How does network segmentation reduce blast radius?","answer":"It limits lateral movement across workloads and environments."}
+{"question":"What is east-west traffic in threat modelling?","answer":"Service-to-service communication within internal network zones."}
+{"question":"Why assess egress controls?","answer":"To reduce data exfiltration and command-and-control opportunities."}
+{"question":"What data states should be reviewed for protection?","answer":"At rest, in transit, and in use."}
+{"question":"What is envelope encryption?","answer":"A pattern where data keys encrypt data and are themselves encrypted by master keys."}
+{"question":"How can key management failures create threats?","answer":"Poor rotation, broad key access, or weak separation of duties can expose sensitive data."}
+{"question":"Why is section-level citation metadata important?","answer":"It enables precise traceability for grounded answers."}
+{"question":"What is repudiation in STRIDE terms?","answer":"The ability of actors to deny actions due to insufficient audit evidence."}
+{"question":"How do logs support repudiation controls?","answer":"They provide immutable audit trails and action provenance."}
+{"question":"What is an information disclosure risk example?","answer":"Misconfigured storage permissions exposing confidential data."}
+{"question":"Why is denial of service modelled early?","answer":"Availability controls require architectural choices, not only runtime mitigations."}
+{"question":"What is elevation of privilege in AWS context?","answer":"Gaining permissions beyond intended role scope through trust or policy weaknesses."}
+{"question":"How do Well-Architected questions help threat models?","answer":"They provide structured prompts for control coverage and design decisions."}
+{"question":"Why include incident response in a threat model?","answer":"Detection and containment effectiveness determines real-world impact."}
+{"question":"What makes a useful detection control?","answer":"High signal telemetry tied to actionable and tested response paths."}
+{"question":"How can contributor metadata improve governance?","answer":"It supports accountability, review routing, and compliance evidence."}
+{"question":"What is the purpose of regression gates for packs?","answer":"To prevent quality declines when new content is added."}
+{"question":"Why enforce pack/version filters on queries?","answer":"To prevent cross-pack leakage in multi-tenant retrieval."}
+{"question":"What is the main benefit of staged publish states?","answer":"They separate ingest, evaluation, and release to reduce accidental publication risk."}
