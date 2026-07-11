@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Validate CI evidence for deployment commit
         id: checks
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const owner = context.repo.owner;
