@@ -8,6 +8,11 @@ app = FastAPI(title="rag-pipe API", version="0.1.0")
 service = RetrievalService()
 
 
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.post("/v1/packs/{pack_id}/query", response_model=RetrievalResponse)
 async def query_pack(
     pack_id: str,

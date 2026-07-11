@@ -1,0 +1,47 @@
+name: Release tag and publish
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  tag-and-release:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate and parse version from branch
+        id: parse
+        run: |
+          BRANCH='${{ github.event.pull_request.head.ref }}'
+          if [[ ! "$BRANCH" =~ ^release/v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo '::error::Release branch must match release/vX.Y.Z'
+            exit 1
+          fi
+          VERSION="${BASH_REMATCH[1]}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push annotated tag
+        run: |
+          VERSION='${{ steps.parse.outputs.version }}'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Create GitHub release from PR body
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.parse.outputs.version }}
+          name: v${{ steps.parse.outputs.version }}
+          body: ${{ github.event.pull_request.body }}

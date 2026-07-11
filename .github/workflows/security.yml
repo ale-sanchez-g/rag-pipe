@@ -1,0 +1,368 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'release/**'
+
+permissions: {}
+
+jobs:
+  sast-exception-expiry:
+    name: SAST exception register expiry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate .sast-exceptions.json expiry
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import date
+          from pathlib import Path
+
+          path = Path('.sast-exceptions.json')
+          data = json.loads(path.read_text())
+          today = date.today()
+          expired = []
+
+          for namespace, entries in data.items():
+              for entry in entries:
+                  exp = date.fromisoformat(entry['expires'])
+                  if exp < today:
+                      expired.append((namespace, entry['id'], entry['expires']))
+
+          if expired:
+              raise SystemExit('Expired SAST exceptions: ' + ', '.join(f"{n}:{i}@{e}" for n, i, e in expired))
+          print('No expired SAST exceptions.')
+          PY
+
+  secrets-scan:
+    name: Secrets scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks and verify checksum
+        run: |
+          set -euo pipefail
+          VERSION=8.18.4
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}"
+          curl -sSL "$BASE_URL/gitleaks_${VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          curl -sSL "$BASE_URL/gitleaks_${VERSION}_checksums.txt" -o checksums.txt
+          grep "gitleaks_${VERSION}_linux_x64.tar.gz" checksums.txt > selected.sum
+          sha256sum -c selected.sum
+          tar -xzf gitleaks.tar.gz gitleaks
+          chmod +x gitleaks
+
+      - name: Report-first secrets scan
+        run: |
+          set +e
+          BASELINE_ARGS=""
+          if [ -f .gitleaks-baseline.json ]; then
+            BASELINE_ARGS="--baseline-path .gitleaks-baseline.json"
+          fi
+          ./gitleaks git --report-format sarif --report-path gitleaks.sarif --config .gitleaks.toml ${BASELINE_ARGS}
+          SCAN_EXIT=$?
+          ./gitleaks git --report-format json --report-path gitleaks.json --config .gitleaks.toml ${BASELINE_ARGS} || true
+          echo "scan_exit=${SCAN_EXIT}" >> "$GITHUB_OUTPUT"
+        id: secrets_report
+
+      - name: Upload secrets reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: secrets-scan-report
+          path: |
+            gitleaks.sarif
+            gitleaks.json
+          retention-days: 30
+
+      - name: Upload SARIF (non-fork PRs / pushes)
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+
+      - name: Upsert secrets PR comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          MARKER: '<!-- secrets-scan-summary -->'
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const marker = process.env.MARKER;
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('gitleaks.json', 'utf8'));
+            const total = Array.isArray(data) ? data.length : 0;
+            const body = `${marker}\n## Secrets scan\n\n| Severity bucket | Count |\n|---|---:|\n| Findings | ${total} |`;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Enforce no unbaselined findings
+        run: |
+          test "${{ steps.secrets_report.outputs.scan_exit }}" = "0"
+
+  sast-python:
+    name: SAST (Python)
+    runs-on: ubuntu-latest
+    needs: sast-exception-expiry
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install semgrep
+        run: python -m pip install semgrep==1.82.0
+
+      - name: Build ignore list from exceptions
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('.sast-exceptions.json').read_text())
+          rules = [entry['id'] for entry in data.get('semgrep', [])]
+          Path('.semgrep-ignore-rules.txt').write_text('\n'.join(rules))
+          PY
+
+      - name: Report-first SAST run (SARIF + JSON)
+        run: |
+          IGNORE_ARGS=""
+          if [ -s .semgrep-ignore-rules.txt ]; then
+            while read -r rule; do
+              IGNORE_ARGS="$IGNORE_ARGS --exclude-rule $rule"
+            done < .semgrep-ignore-rules.txt
+          fi
+          semgrep scan --config p/python --sarif --output semgrep.sarif $IGNORE_ARGS . || true
+          semgrep scan --config p/python --json --output semgrep.json $IGNORE_ARGS . || true
+
+      - name: Upload SAST reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-python-report
+          path: |
+            semgrep.sarif
+            semgrep.json
+          retention-days: 30
+
+      - name: Upload SAST SARIF (non-fork PRs / pushes)
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+
+      - name: Enforce high severity findings
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('semgrep.json').read_text())
+          blocking = []
+          for result in data.get('results', []):
+              severity = (result.get('extra', {}).get('severity') or '').upper()
+              if severity in {'ERROR', 'HIGH', 'CRITICAL'}:
+                  rid = result.get('check_id', 'unknown')
+                  path = result.get('path', 'unknown')
+                  blocking.append(f"{rid}@{path}")
+          if blocking:
+              raise SystemExit('Blocking SAST findings: ' + ', '.join(blocking))
+          print('No blocking SAST findings.')
+          PY
+
+  sca-python:
+    name: SCA (Python)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install pip-audit
+        run: python -m pip install pip-audit==2.7.3
+
+      - name: Report-first SCA run
+        run: pip-audit -r uv.lock -f json -o sca-python-report.json || true
+
+      - name: Upload SCA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-sca-python-report
+          path: sca-python-report.json
+          retention-days: 30
+
+      - name: Enforce high/critical SCA findings with exceptions
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('sca-python-report.json').read_text())
+          exc = json.loads(Path('.sca-exceptions.json').read_text())
+          allow = {e['id'] for e in exc.get('python', [])}
+          findings = []
+          for dep in report.get('dependencies', []):
+              for vuln in dep.get('vulns', []):
+                  sev = (vuln.get('severity') or '').upper()
+                  vid = vuln.get('id', '')
+                  if sev in {'HIGH', 'CRITICAL'} and vid not in allow:
+                      findings.append(f"{vid}:{sev}:{dep.get('name')}")
+          if findings:
+              raise SystemExit('Blocking SCA findings: ' + ', '.join(findings))
+          print('No blocking unexcepted HIGH/CRITICAL Python dependency findings.')
+          PY
+
+  sast-summary:
+    name: SAST summary
+    runs-on: ubuntu-latest
+    needs:
+      - sast-python
+      - secrets-scan
+    if: always()
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Download SAST artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: sast-*-report
+          merge-multiple: true
+
+      - name: Build SAST summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          semgrep_path = Path('semgrep.json')
+          total = 0
+          high = 0
+          if semgrep_path.exists():
+              data = json.loads(semgrep_path.read_text())
+              total = len(data.get('results', []))
+              for r in data.get('results', []):
+                  sev = (r.get('extra', {}).get('severity') or '').upper()
+                  if sev in {'ERROR', 'HIGH', 'CRITICAL'}:
+                      high += 1
+
+          with open('sast-summary.md', 'w', encoding='utf-8') as f:
+              f.write('| Scanner | Total | High/Critical |\\n|---|---:|---:|\\n')
+              f.write(f'| semgrep | {total} | {high} |\\n')
+          PY
+
+      - name: Upsert SAST summary comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          MARKER: '<!-- sast-summary -->'
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const marker = process.env.MARKER;
+            const fs = require('fs');
+            const summary = fs.readFileSync('sast-summary.md', 'utf8');
+            const body = `${marker}\n## SAST summary\n\n${summary}`;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+  sca-summary:
+    name: SCA summary
+    runs-on: ubuntu-latest
+    needs:
+      - sca-python
+    if: always()
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Download SCA artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: *sca*report*
+          merge-multiple: true
+
+      - name: Build SCA summary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path('sca-python-report.json')
+          total = 0
+          high = 0
+          critical = 0
+          if report.exists():
+              data = json.loads(report.read_text())
+              for dep in data.get('dependencies', []):
+                  for vuln in dep.get('vulns', []):
+                      total += 1
+                      sev = (vuln.get('severity') or '').upper()
+                      if sev == 'HIGH':
+                          high += 1
+                      if sev == 'CRITICAL':
+                          critical += 1
+
+          with open('sca-summary.md', 'w', encoding='utf-8') as f:
+              f.write('| Ecosystem | Total | High | Critical |\\n|---|---:|---:|---:|\\n')
+              f.write(f'| python | {total} | {high} | {critical} |\\n')
+          PY
+
+      - name: Upsert SCA summary comment
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          MARKER: '<!-- sca-summary -->'
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const marker = process.env.MARKER;
+            const fs = require('fs');
+            const summary = fs.readFileSync('sca-summary.md', 'utf8');
+            const body = `${marker}\n## SCA summary\n\n${summary}`;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

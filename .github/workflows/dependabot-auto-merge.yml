@@ -1,0 +1,67 @@
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions: {}
+
+jobs:
+  dependabot-automerge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -e '.[dev]'
+
+      - name: Run real test suites
+        run: |
+          pytest tests/unit
+          pytest tests/security
+          pytest tests/e2e
+          pytest tests/performance
+
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge patch/minor updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "$PR_URL" --squash --auto
+        shell: bash
+
+      - name: Label major/unknown updates for manual review
+        if: steps.metadata.outputs.update-type != 'version-update:semver-patch' && steps.metadata.outputs.update-type != 'version-update:semver-minor'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: ['needs-manual-review'] });
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pull_number,
+              body: 'Update classified as major or unrecognised semver; auto-merge skipped and manual review is required.'
+            });
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}

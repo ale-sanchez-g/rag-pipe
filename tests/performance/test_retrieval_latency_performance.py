@@ -1,5 +1,6 @@
 import time
 from math import ceil
+import os
 
 import pytest
 
@@ -8,8 +9,8 @@ from retrieval.service import RetrievalService
 
 pytestmark = pytest.mark.performance
 
-NUM_SAMPLES = 50
-P95_LATENCY_THRESHOLD_SECONDS = 0.05
+NUM_SAMPLES = int(os.getenv("RAG_PIPE_PERF_SAMPLES", "50"))
+P95_LATENCY_THRESHOLD_SECONDS = float(os.getenv("RAG_PIPE_PERF_P95_SECONDS", "0.05"))
 
 
 def test_retrieval_service_p95_latency_smoke() -> None:
