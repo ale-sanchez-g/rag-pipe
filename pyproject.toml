@@ -5,7 +5,7 @@ description = "Productised multi-tenant RAG pipeline"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi==0.139.0",
+  "fastapi==0.139.2",
   "pydantic==2.13.4",
   "typer==0.26.8",
   "pyyaml==6.0.3",
